@@ -1,0 +1,35 @@
+services:
+  jupyter-lab:
+    image: jupyter/pyspark-notebook:latest
+    container_name: jupyter-lab
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./scripts:/home/jovyan/dlt_pipeline
+      - ./requirements.txt:/home/jovyan/requirements.txt
+    command: >
+      bash -c "pip install -r /home/jovyan/requirements.txt && start.sh jupyter lab"
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio_project
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  nessie:
+    image: projectnessie/nessie:latest
+    container_name: nessie
+    ports:
+      - "19120:19120"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    ports:
+      - "8123:8123"
+      - "9009:9009"
