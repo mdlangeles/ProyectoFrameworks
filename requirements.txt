@@ -4,3 +4,8 @@ pandas==2.2.0
 minio==7.2.5
 azure-storage-blob==12.19.0
 clickhouse-connect==0.7.6
+fastparquet
+requests #Añadidos
+boto3
+
+
