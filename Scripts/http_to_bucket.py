@@ -12,15 +12,16 @@ print("Descargando parquet...")
 response = requests.get(parquet_url)
 response.raise_for_status()
 
-# Conectar a Minio
+# Conectar a Minio (dentro de docker-compose → usar 'minio:9000')
 client = Minio(
     "minio:9000",
-    access_key="minio",
-    secret_key="minio123",
+    access_key="admin",
+    secret_key="password",
     secure=False
 )
 
-bucket_name = "minio-bucket"
+# Usar el bucket 'warehouse' que ya existe
+bucket_name = "warehouse"
 object_name = "yellow_tripdata_2025-01.parquet"
 
 # Crear bucket si no existe
