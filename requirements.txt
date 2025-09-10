@@ -1,4 +1,5 @@
 dlt==0.3.12
+dlt[filesystem]
 pyarrow==15.0.0
 pandas==2.2.0
 minio==7.2.5
