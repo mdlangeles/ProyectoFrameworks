@@ -9,11 +9,13 @@ services:
     container_name: jupyter-lab
     ports:
       - "8888:8888"
+    working_dir: /workspace
     volumes:
-      - ./scripts:/home/jovyan/dlt_pipeline
-      - ./requirements.txt:/home/jovyan/requirements.txt
+      - ./notebooks:/workspace
+      - ./requirements.txt:/workspace/requirements.txt
+      - ./dlt:/workspace/.dlt
     command: >
-      bash -c "pip install -r /home/jovyan/requirements.txt && start.sh jupyter lab"
+      bash -c "pip install -r /workspace/requirements.txt && start.sh jupyter lab"
     networks:
       - iceberg_net
 
