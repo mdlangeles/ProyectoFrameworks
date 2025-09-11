@@ -14,15 +14,27 @@ services:
       - ./notebooks:/workspace
       - ./requirements.txt:/workspace/requirements.txt
       - ./dlt:/workspace/.dlt
-    command: 
+    command: >
       bash -c "pip install -r /workspace/requirements.txt && start.sh jupyter lab"
     environment:
-      - PYICEBERG_CATALOG__NESSIE__URI=http://nessie:19120/api/v1
-      - PYICEBERG_CATALOG__NESSIE__WAREHOUSE=s3://warehouse
-      - PYICEBERG_CATALOG__NESSIE__S3__ENDPOINT=http://minio:9000
-      - PYICEBERG_CATALOG__NESSIE__S3__ACCESS_KEY_ID=admin
-      - PYICEBERG_CATALOG__NESSIE__S3__SECRET_ACCESS_KEY=password
-      - AWS_ALLOW_HTTP=true
+      # Variables de MinIO
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_DOMAIN: ${MINIO_DOMAIN}
+      MINIO_BUCKETS: ${MINIO_BUCKETS}
+      SOURCE_PREFIX: ${SOURCE_PREFIX}
+      PARQUET_URL: ${PARQUET_URL}
+      MINIO_OBJECT: ${MINIO_OBJECT}
+      PYICEBERG_CATALOG__NESSIE__URI: http://nessie:19120/api/v1
+      PYICEBERG_CATALOG__NESSIE__WAREHOUSE: s3://warehouse
+      PYICEBERG_CATALOG__NESSIE__S3__ENDPOINT: http://minio:9000
+      PYICEBERG_CATALOG__NESSIE__S3__ACCESS_KEY_ID: admin
+      PYICEBERG_CATALOG__NESSIE__S3__SECRET_ACCESS_KEY: password
+      AWS_ALLOW_HTTP: true
+    
     networks:
       - iceberg_net
 
@@ -32,6 +44,7 @@ services:
   spark-iceberg:
     image: tabulario/spark-iceberg
     container_name: spark-iceberg
+    build: spark/
     networks:
       - iceberg_net
     depends_on:
@@ -41,9 +54,9 @@ services:
       - ./warehouse:/home/iceberg/warehouse
       - ./notebooks:/home/iceberg/notebooks/notebooks
     environment:
-      - AWS_ACCESS_KEY_ID=admin
-      - AWS_SECRET_ACCESS_KEY=password
-      - AWS_REGION=us-east-1
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
     ports:
       - "8080:8080"
       - "10000:10000"
@@ -60,12 +73,12 @@ services:
     ports:
       - "8181:8181"
     environment:
-      - AWS_ACCESS_KEY_ID=admin
-      - AWS_SECRET_ACCESS_KEY=password
-      - AWS_REGION=us-east-1
-      - CATALOG_WAREHOUSE=s3://warehouse/
-      - CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO
-      - CATALOG_S3_ENDPOINT=http://minio:9000
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      CATALOG_WAREHOUSE: s3://warehouse/
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: http://minio:9000
 
   # -----------------------
   # MinIO para almacenamiento
@@ -74,10 +87,8 @@ services:
     image: minio/minio:latest
     container_name: minio
     environment:
-      MINIO_ROOT_USER: admin
-      MINIO_ROOT_PASSWORD: password
-      MINIO_DOMAIN: minio
-      MINIO_BUCKETS: "icebergbucket"
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY}
     command: server /data --console-address ":9001"
     networks:
       iceberg_net:
@@ -98,12 +109,12 @@ services:
     networks:
       - iceberg_net
     environment:
-      - AWS_ACCESS_KEY_ID=admin
-      - AWS_SECRET_ACCESS_KEY=password
-      - AWS_REGION=us-east-1
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
     entrypoint: |
       /bin/sh -c "
-      until (/usr/bin/mc alias set minio http://minio:9000 admin password) do echo '...waiting...' && sleep 1; done;
+      until (/usr/bin/mc alias set minio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}) do echo '...waiting...' && sleep 1; done;
       /usr/bin/mc rm -r --force minio/warehouse;
       /usr/bin/mc mb minio/warehouse;
       /usr/bin/mc policy set public minio/warehouse;
@@ -113,7 +124,7 @@ services:
   # -----------------------
   # Nessie catalog service
   # -----------------------
-  Nessie:
+  nessie:
     image: ghcr.io/projectnessie/nessie:0.99.0
     container_name: nessie
     ports:
@@ -122,7 +133,6 @@ services:
       - nessie.version.store.type=IN_MEMORY
       - nessie.catalog.default-warehouse=warehouse
       - nessie.catalog.warehouses.warehouse.location=s3://warehouse/
-      - nessie.catalog.warehouses.mybucket.location=s3://my-bucket/
       - nessie.catalog.service.s3.default-options.endpoint=http://minio:9000/
       - nessie.catalog.service.s3.default-options.access-key=urn:nessie-secret:quarkus:nessie.catalog.secrets.access-key
       - nessie.catalog.service.s3.default-options.path-style-access=true
@@ -131,6 +141,7 @@ services:
       - nessie.catalog.secrets.access-key.secret=password
       - nessie.catalog.service.s3.default-options.region=us-east-1
       - nessie.server.authentication.enabled=false
+      - quarkus.http.host=0.0.0.0
     networks:
       - iceberg_net
 
