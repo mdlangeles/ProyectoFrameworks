@@ -164,6 +164,11 @@ services:
       - "9009:9009"
     networks:
       - iceberg_net
+    environment:
+      - CLICKHOUSE_USER=default  
+      - CLICKHOUSE_PASSWORD=your_password  
+      - CLICKHOUSE_DB=default  
+
 
 networks:
   iceberg_net:
