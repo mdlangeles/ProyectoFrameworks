@@ -29,10 +29,10 @@ services:
       PARQUET_URL: ${PARQUET_URL}
       MINIO_OBJECT: ${MINIO_OBJECT}
       PYICEBERG_CATALOG__NESSIE__URI: http://nessie:19120/api/v1
-      PYICEBERG_CATALOG__NESSIE__WAREHOUSE: s3://warehouse
-      PYICEBERG_CATALOG__NESSIE__S3__ENDPOINT: http://minio:9000
-      PYICEBERG_CATALOG__NESSIE__S3__ACCESS_KEY_ID: admin
-      PYICEBERG_CATALOG__NESSIE__S3__SECRET_ACCESS_KEY: password
+      #PYICEBERG_CATALOG__NESSIE__WAREHOUSE: s3://warehouse
+      #PYICEBERG_CATALOG__NESSIE__S3__ENDPOINT: http://minio:9000
+      #PYICEBERG_CATALOG__NESSIE__S3__ACCESS_KEY_ID: admin
+      #PYICEBERG_CATALOG__NESSIE__S3__SECRET_ACCESS_KEY: password
       AWS_ALLOW_HTTP: true
     
     networks:
@@ -48,7 +48,7 @@ services:
     networks:
       - iceberg_net
     depends_on:
-      - rest
+      # - rest
       - minio
     volumes:
       - ./warehouse:/home/iceberg/warehouse
@@ -62,23 +62,24 @@ services:
       - "10000:10000"
       - "10001:10001"
 
-  # -----------------------
-  # Iceberg REST catalog
-  # -----------------------
-  rest:
-    image: apache/iceberg-rest-fixture
-    container_name: iceberg-rest
-    networks:
-      - iceberg_net
-    ports:
-      - "8181:8181"
-    environment:
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_REGION: ${AWS_REGION}
-      CATALOG_WAREHOUSE: s3://warehouse/
-      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
-      CATALOG_S3_ENDPOINT: http://minio:9000
+  # # -----------------------
+  # # Iceberg REST catalog
+  # # -----------------------
+  # rest:
+  #   image: apache/iceberg-rest-fixture
+  #   container_name: iceberg-rest
+  #   networks:
+  #     - iceberg_net
+  #   ports:
+  #     - "8181:8181"
+  #   environment:
+  #     AWS_ACCESS_KEY_ID: admin
+  #     AWS_SECRET_ACCESS_KEY: password
+  #     AWS_REGION: us-east-1
+  #     CATALOG_WAREHOUSE: s3://new_bucket/
+  #     CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+  #     CATALOG_S3_ENDPOINT: http://minio:9000
+  #     CATALOG_S3_PATH_STYLE_ACCESS: true
 
   # -----------------------
   # MinIO para almacenamiento
@@ -117,6 +118,8 @@ services:
       until (/usr/bin/mc alias set minio http://minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}) do echo '...waiting...' && sleep 1; done;
       /usr/bin/mc rm -r --force minio/warehouse;
       /usr/bin/mc mb minio/warehouse;
+      /usr/bin/mc mb minio/new_bucket;
+      /usr/bin/mc policy set public minio/warehouse;
       /usr/bin/mc policy set public minio/warehouse;
       tail -f /dev/null
       "
@@ -130,18 +133,18 @@ services:
     ports:
       - "19120:19120"
     environment:
-      - nessie.version.store.type=IN_MEMORY
-      - nessie.catalog.default-warehouse=warehouse
-      - nessie.catalog.warehouses.warehouse.location=s3://warehouse/
-      - nessie.catalog.service.s3.default-options.endpoint=http://minio:9000/
-      - nessie.catalog.service.s3.default-options.access-key=urn:nessie-secret:quarkus:nessie.catalog.secrets.access-key
-      - nessie.catalog.service.s3.default-options.path-style-access=true
-      - nessie.catalog.service.s3.default-options.auth-type=STATIC
-      - nessie.catalog.secrets.access-key.name=admin
-      - nessie.catalog.secrets.access-key.secret=password
-      - nessie.catalog.service.s3.default-options.region=us-east-1
-      - nessie.server.authentication.enabled=false
-      - quarkus.http.host=0.0.0.0
+      - nessie.catalog.default-warehouse=new_bucket
+      - nessie.catalog.warehouses.new_bucket.location=s3://new_bucket/
+      - nessie.catalog.warehouses.new_bucket.default-options.endpoint=http://minio:9000/
+      - nessie.catalog.warehouses.new_bucket.default-options.access-key=urn:nessie-secret:quarkus:nessie.catalog.secrets.access-key  # ✅ Correcto
+      - nessie.catalog.warehouses.new_bucket.default-options.secret-access-key=urn:nessie-secret:quarkus:nessie.catalog.secrets.secret-access-key  # ✅ Correcto
+      - nessie.catalog.warehouses.new_bucket.default-options.path-style-access=true
+      - nessie.catalog.warehouses.new_bucket.default-options.auth-type=STATIC
+      - nessie.catalog.warehouses.new_bucket.default-options.region=us-east-1
+      - nessie.catalog.secrets.access-key.name=admin  # ✅ Credenciales aquí
+      - nessie.catalog.secrets.access-key.secret=password  # ✅ Credenciales aquí
+      - nessie.catalog.secrets.secret-access-key.name=admin  # ✅ Para secret-access-key
+      - nessie.catalog.secrets.secret-access-key.secret=password  # ✅ Para secret-access-key
     networks:
       - iceberg_net
 
