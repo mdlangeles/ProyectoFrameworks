@@ -12,10 +12,7 @@ services:
     working_dir: /workspace
     volumes:
       - ./notebooks:/workspace
-      - ./requirements.txt:/workspace/requirements.txt
       - ./dlt:/workspace/.dlt
-    command: >
-      bash -c "pip install -r /workspace/requirements.txt && start.sh jupyter lab"
     environment:
       # Variables de MinIO
       JUPYTER_TOKEN: ${JUPYTER_TOKEN}
